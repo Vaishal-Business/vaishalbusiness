@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css">
+  <link rel="stylesheet" href="/form/form.css">
+  <title>Contact Me</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+
+  <script>
+    // Initialize the phone number input field with intl-tel-input
+    let phoneInput;
+
+    window.onload = function() {
+      // Initialize the phone input field with the intl-tel-input plugin
+      phoneInput = window.intlTelInput(document.querySelector("#whatsapp"), {
+        initialCountry: "us", // Default country (US)
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js", // Required for validation and formatting
+        separateDialCode: true, // This will show country code separately from the phone number
+      });
+
+      // Load saved form data from sessionStorage (if any)
+      loadFormData();
+
+      // Listen for input events to automatically format the number with spaces
+      document.querySelector("#whatsapp").addEventListener('input', formatPhoneNumber);
+      document.querySelector("#name").addEventListener('input', saveFormData);
+      document.querySelector("#email").addEventListener('input', saveFormData);
+      document.querySelector("#company").addEventListener('input', saveFormData);
+    };
+
+    // Function to automatically format the phone number with spaces
+    function formatPhoneNumber(event) {
+      let input = event.target;
+      let value = input.value;
+
+      // Remove all non-numeric characters (to clean up the input)
+      value = value.replace(/\D/g, '');
+
+      // Insert spaces after every 3 digits
+      value = value.replace(/(\d{3})(?=\d)/g, '$1 ');
+
+      // Set the formatted value back to the input field
+      input.value = value;
+
+      // Save the phone number to sessionStorage
+      sessionStorage.setItem('whatsapp', input.value);
+    }
+
+    // Function to save form data to sessionStorage
+    function saveFormData(event) {
+      let input = event.target;
+      sessionStorage.setItem(input.id, input.value);
+    }
+
+    // Function to load form data from sessionStorage
+    function loadFormData() {
+      // Check if data exists in sessionStorage and populate the form
+      if (sessionStorage.getItem('name')) {
+        document.querySelector("#name").value = sessionStorage.getItem('name');
+      }
+      if (sessionStorage.getItem('email')) {
+        document.querySelector("#email").value = sessionStorage.getItem('email');
+      }
+      if (sessionStorage.getItem('company')) {
+        document.querySelector("#company").value = sessionStorage.getItem('company');
+      }
+      if (sessionStorage.getItem('whatsapp')) {
+        document.querySelector("#whatsapp").value = sessionStorage.getItem('whatsapp');
+        formatPhoneNumber({ target: document.querySelector("#whatsapp") }); // Reformat the phone number
+      }
+    }
+
+    // Function to validate the phone number before form submission
+    function validateForm(event) {
+      var phoneNumber = phoneInput.getNumber(); // Get the full phone number (including country code)
+      if (!phoneInput.isValidNumber()) {
+        alert('Please enter a valid phone number.');
+        event.preventDefault(); // Prevent form submission
+        return false;
+      }
+
+      // Show a success alert
+      alert('Form submitted successfully!');
+
+      // Set the formatted phone number including country code into the hidden field
+      document.querySelector("#formattedPhone").value = phoneNumber;
+
+      // Clear sessionStorage data after successful form submission
+      sessionStorage.clear();
+
+      console.log("Formatted phone number:", phoneNumber);
+      return true;
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress"></div>
+    </div>
+    <!-- Form with Sheet2API integration -->
+    <form data-spreadsheet-api="https://sheet2api.com/v1/gD7nhJMgSpSx/awesome/Sheet1" onsubmit="return validateForm(event)">
+      <h1>Contact Me</h1>
+
+      <!-- Personal Information -->
+      <div class="section">
+        <h2 class="section-title">Your Information</h2>
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="Name" placeholder="Your name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="Email" placeholder="Email" required>
+        </div>
+        <div class="form-group">
+          <label for="company">Company</label>
+          <input type="text" id="company" name="Company" placeholder="Company name (optional)">
+        </div>
+
+        <!-- WhatsApp Phone Number -->
+        <div class="form-group">
+          <label for="whatsapp">WhatsApp Number (optional)</label>
+          <div class="phone-input">
+            <!-- Input box with country code and phone number -->
+            <input type="tel" id="whatsapp" name="WhatsApp Number" placeholder="123 456 789" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden field to store the formatted phone number with country code -->
+      <input type="hidden" id="formattedPhone" name="Formatted WhatsApp Number">
+
+      <button type="submit" class="submit-btn">Submit</button>
+    </form>
+  </div>
+
+  <!-- Include the Sheet2API script -->
+  <script src="https://sheet2api.com/v1/template.js"></script>
+</body>
+</html>
