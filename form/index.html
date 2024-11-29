@@ -11,7 +11,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
 
   <script>
-    // Initialize the phone number input field with intl-tel-input
     let phoneInput;
 
     window.onload = function() {
@@ -22,14 +21,17 @@
         separateDialCode: true, // This will show country code separately from the phone number
       });
 
-      // Load saved form data from sessionStorage (if any)
-      loadFormData();
-
       // Listen for input events to automatically format the number with spaces
       document.querySelector("#whatsapp").addEventListener('input', formatPhoneNumber);
       document.querySelector("#name").addEventListener('input', saveFormData);
       document.querySelector("#email").addEventListener('input', saveFormData);
       document.querySelector("#company").addEventListener('input', saveFormData);
+
+      // Listen for country change to update the placeholder
+      phoneInput.on("countrychange", updatePhonePlaceholder);
+
+      // Call the function to set the placeholder on page load
+      updatePhonePlaceholder();
     };
 
     // Function to automatically format the phone number with spaces
@@ -56,6 +58,32 @@
       sessionStorage.setItem(input.id, input.value);
     }
 
+    // Function to update the phone number placeholder based on the country selected
+    function updatePhonePlaceholder() {
+      const countryData = phoneInput.getSelectedCountryData();
+      const countryCode = countryData.dialCode;
+      const countryName = countryData.name;
+      
+      // Set a basic placeholder pattern based on the country
+      let phoneLength = getPhoneLengthForCountry(countryName);
+
+      // Update the placeholder with the appropriate number of digits
+      const placeholder = `${'X'.repeat(phoneLength)}`; // Example: "XXX XXX XXXX" for 9 digits
+      document.querySelector("#whatsapp").placeholder = `${countryCode} ${placeholder}`;
+    }
+
+    // Function to get the phone number length for a given country
+    function getPhoneLengthForCountry(countryName) {
+      const countryPhoneLengths = {
+        "US": 10, // 10 digits for US (country code + 7 digits)
+        "UAE": 9,  // 9 digits for UAE
+        // Add other countries and their phone number lengths here
+      };
+
+      // Default to 7 digits if no specific country is found
+      return countryPhoneLengths[countryName] || 7;
+    }
+
     // Function to load form data from sessionStorage
     function loadFormData() {
       // Check if data exists in sessionStorage and populate the form
@@ -74,26 +102,55 @@
       }
     }
 
-    // Function to validate the phone number before form submission
-    function validateForm(event) {
-      var phoneNumber = phoneInput.getNumber(); // Get the full phone number (including country code)
-      if (!phoneInput.isValidNumber()) {
-        alert('Please enter a valid phone number.');
-        event.preventDefault(); // Prevent form submission
-        return false;
+    // Function to validate and submit the form
+    async function submitForm(event) {
+      event.preventDefault();
+
+      // Get the selected country code and entered phone number
+      const countryData = phoneInput.getSelectedCountryData();
+      const countryCode = countryData.dialCode;
+      const countryName = countryData.name;
+      const phoneNumber = document.getElementById("whatsapp").value.replace(/\D/g, ''); // Remove non-numeric characters
+
+      // Combine the country name, country code, and phone number
+      const fullPhoneNumber = `(${countryName} - ${countryCode}) ${phoneNumber}`;
+
+      // Log the combined phone number to the console
+      console.log("Full Phone Number:", fullPhoneNumber);
+
+      // Collecting form data
+      const formData = {
+        Name: document.getElementById("name").value,
+        Email: document.getElementById("email").value,
+        Company: document.getElementById("company").value,
+        "WhatsApp Number": fullPhoneNumber, // Save the combined phone number with country name and code
+      };
+
+      // Log form data for debugging
+      console.log("Form Data:", formData);
+
+      // Send data to Sheet2API
+      try {
+        const response = await fetch("https://sheet2api.com/v1/gD7nhJMgSpSx/awesome/Sheet1", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert("Form submitted successfully!");
+          console.log(result);
+        } else {
+          alert(`Error: ${result.detail}`);
+          console.error(result);
+        }
+      } catch (error) {
+        alert("Something went wrong. Please try again.");
+        console.error("Error:", error);
       }
-
-      // Show a success alert
-      alert('Form submitted successfully!');
-
-      // Set the formatted phone number including country code into the hidden field
-      document.querySelector("#formattedPhone").value = phoneNumber;
-
-      // Clear sessionStorage data after successful form submission
-      sessionStorage.clear();
-
-      console.log("Formatted phone number:", phoneNumber);
-      return true;
     }
   </script>
 </head>
@@ -103,7 +160,7 @@
       <div class="progress-fill" id="progress"></div>
     </div>
     <!-- Form with Sheet2API integration -->
-    <form data-spreadsheet-api="https://sheet2api.com/v1/gD7nhJMgSpSx/awesome/Sheet1" onsubmit="return validateForm(event)">
+    <form onsubmit="submitForm(event)">
       <h1>Contact Me</h1>
 
       <!-- Personal Information -->
@@ -138,8 +195,5 @@
       <button type="submit" class="submit-btn">Submit</button>
     </form>
   </div>
-
-  <!-- Include the Sheet2API script -->
-  <script src="https://sheet2api.com/v1/template.js"></script>
 </body>
 </html>
